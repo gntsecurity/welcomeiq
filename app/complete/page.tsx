@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 
-export default default function CompletionPage() {
+export default function CompletionPage() {
   const router = useRouter()
   const [countdown, setCountdown] = useState(15)
 
