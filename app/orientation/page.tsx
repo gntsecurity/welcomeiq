@@ -1,25 +1,17 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 
 export default function Orientation() {
   const router = useRouter()
-  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const handleEnded = () => {
+    const timeout = setTimeout(() => {
       router.push('/policy')
-    }
-
-    video.addEventListener('ended', handleEnded)
-    return () => {
-      video.removeEventListener('ended', handleEnded)
-    }
+    }, 15000) // Adjust time if needed
+    return () => clearTimeout(timeout)
   }, [router])
 
   return (
@@ -31,7 +23,7 @@ export default function Orientation() {
         transition={{ duration: 0.6 }}
       >
         <h1 className="text-3xl font-extrabold text-blue-700 mb-2">Contractor Orientation</h1>
-        <p className="text-sm text-gray-600">Please watch the entire video to continue</p>
+        <p className="text-sm text-gray-600">Please watch the video to continue</p>
       </motion.div>
 
       <motion.div
@@ -40,13 +32,12 @@ export default function Orientation() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
       >
-        <video
-          ref={videoRef}
-          src="/contractorvideo.mp4"
-          controls
-          autoPlay
-          playsInline
-          className="w-full h-full rounded-2xl"
+        <iframe
+          className="w-full h-full"
+          src="https://www.youtube.com/embed/bIKHudof6pc?autoplay=1&modestbranding=1&rel=0&playsinline=1"
+          title="Contractor Orientation"
+          allow="autoplay; encrypted-media"
+          allowFullScreen
         />
       </motion.div>
 
