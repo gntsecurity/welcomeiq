@@ -33,7 +33,8 @@ export default function PolicyAgreement() {
 
     setLoading(true)
 
-    const signature = sigPadRef.current.toDataURL('image/png')
+    if (!sigPadRef.current) return
+const signature = sigPadRef.current.toDataURL('image/png')
 
     // Optional: Save to Supabase here
     // const { data, error } = await supabase.from('policies').insert({ signature })
