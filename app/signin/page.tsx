@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import supabase from '../../utils/supabaseClient'
+import { supabase } from '../../utils/supabaseClient'
 
 export default function SignIn() {
   const router = useRouter()
