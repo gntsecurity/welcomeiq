@@ -1,185 +1,110 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import SignaturePad from 'signature_pad'
+import { motion } from 'framer-motion'
 
 export default function PolicyAgreement() {
-  const [modalOpen, setModalOpen] = useState(true)
-  const [name, setName] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const router = useRouter()
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const sigPadRef = useRef<SignaturePad | null>(null)
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    ctx?.clearRect(0, 0, canvas.width, canvas.height)
-  }
-
-  const handleSubmit = () => {
-    if (!canvasRef.current || !name) return
-    const signature = canvasRef.current.toDataURL()
-    if (signature.length < 100) return
-    setSubmitted(true)
-  }
+  const [agreed, setAgreed] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    let drawing = false
-
-    const getPos = (e: TouchEvent | MouseEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      if ('touches' in e) {
-        return {
-          x: e.touches[0].clientX - rect.left,
-          y: e.touches[0].clientY - rect.top
-        }
-      }
-      return {
-        x: (e as MouseEvent).clientX - rect.left,
-        y: (e as MouseEvent).clientY - rect.top
-      }
-    }
-
-    const start = (e: TouchEvent | MouseEvent) => {
-      drawing = true
-      const pos = getPos(e)
-      ctx?.beginPath()
-      ctx?.moveTo(pos.x, pos.y)
-    }
-
-    const draw = (e: TouchEvent | MouseEvent) => {
-      if (!drawing) return
-      const pos = getPos(e)
-      ctx?.lineTo(pos.x, pos.y)
-      ctx?.stroke()
-    }
-
-    const end = () => {
-      drawing = false
-    }
-
-    canvas.addEventListener('mousedown', start)
-    canvas.addEventListener('mousemove', draw)
-    canvas.addEventListener('mouseup', end)
-    canvas.addEventListener('mouseleave', end)
-    canvas.addEventListener('touchstart', start)
-    canvas.addEventListener('touchmove', draw)
-    canvas.addEventListener('touchend', end)
-
-    return () => {
-      canvas.removeEventListener('mousedown', start)
-      canvas.removeEventListener('mousemove', draw)
-      canvas.removeEventListener('mouseup', end)
-      canvas.removeEventListener('mouseleave', end)
-      canvas.removeEventListener('touchstart', start)
-      canvas.removeEventListener('touchmove', draw)
-      canvas.removeEventListener('touchend', end)
+    if (canvasRef.current) {
+      const sig = new SignaturePad(canvasRef.current, {
+        backgroundColor: '#ffffff',
+        penColor: '#000000',
+      })
+      sigPadRef.current = sig
     }
   }, [])
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 px-4 text-center space-y-4">
-        <motion.img
-          src="/logo.png"
-          alt="Welcome IQ"
-          className="w-20 h-20 mb-2"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-        />
-        <h1 className="text-2xl font-bold text-blue-700">Agreement Submitted</h1>
-        <p className="text-gray-600">Please wait in the lobby until you are met by company personnel.</p>
-      </div>
-    )
+  const handleClear = () => {
+    sigPadRef.current?.clear()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!agreed || sigPadRef.current?.isEmpty()) return
+
+    setLoading(true)
+
+    const signature = sigPadRef.current.toDataURL('image/png')
+
+    // Optional: Save to Supabase here
+    // const { data, error } = await supabase.from('policies').insert({ signature })
+
+    setTimeout(() => {
+      router.push('/complete')
+    }, 1500)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex flex-col items-center justify-center px-4 py-8 space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-blue-700">Contractor Policy Agreement</h1>
-        <p className="text-sm text-gray-600">Please sign below after reviewing the policy</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center px-4 py-10">
+      <motion.div
+        className="bg-white w-full max-w-2xl rounded-3xl shadow-xl p-8 space-y-6 border border-gray-200"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-2xl font-extrabold text-blue-700">Policy Agreement</h1>
+        <p className="text-sm text-gray-600">
+          Please read and agree to the following policy. Then sign below to continue.
+        </p>
 
-      <div className="w-full max-w-md space-y-4 z-10">
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full p-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-        />
-        <div>
-          <p className="text-sm text-gray-600 mb-1">Signature:</p>
-          <canvas
-            ref={canvasRef}
-            width={400}
-            height={150}
-            className="border rounded-xl bg-white w-full shadow-lg"
+        <div className="p-4 border border-gray-200 rounded-xl max-h-60 overflow-y-auto text-sm text-gray-700 bg-gray-50">
+          <p>
+            By checking in to this facility, you acknowledge and agree to comply with all site safety,
+            health, and security policies. Unauthorized access, photography, or unsafe behavior may
+            result in removal and further action. All visitors must be accompanied at all times unless
+            otherwise approved. PPE is required in designated areas. By signing below, you agree to
+            these terms.
+          </p>
+        </div>
+
+        <label className="flex items-center space-x-3">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={e => setAgreed(e.target.checked)}
+            className="h-5 w-5 text-blue-600"
           />
+          <span className="text-sm text-gray-700">I have read and agree to the above policy.</span>
+        </label>
+
+        <div>
+          <p className="text-sm text-gray-700 mb-2">Signature:</p>
+          <div className="border border-gray-300 rounded-xl bg-white">
+            <canvas
+              ref={canvasRef}
+              width={500}
+              height={150}
+              className="w-full rounded-xl"
+            />
+          </div>
           <button
-            onClick={clearCanvas}
-            className="text-sm mt-2 text-blue-600 underline"
+            type="button"
+            onClick={handleClear}
+            className="text-sm text-blue-600 mt-2 hover:underline"
           >
             Clear Signature
           </button>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={!name}
-          className={`w-full py-3 rounded-xl text-lg font-semibold transition-colors ${
-            name ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-          }`}
-        >
-          Submit Agreement
-        </button>
-      </div>
 
-      <AnimatePresence>
-        {modalOpen && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="bg-white w-full max-w-3xl h-[90vh] rounded-2xl shadow-xl flex flex-col overflow-hidden"
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 40, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex justify-between items-center p-4 border-b">
-                <img src="/logo.png" alt="Welcome IQ" className="w-10 h-10" />
-                <h2 className="text-lg font-semibold text-blue-700">Angstrom Contractor Policy</h2>
-              </div>
-              <div className="flex-1 overflow-y-auto p-6 text-sm text-gray-700 leading-relaxed">
-                <p><strong>Purpose:</strong> This policy establishes guidelines and expectations for contractors performing duties at Angstrom facilities.</p>
-                <p className="mt-2"><strong>Scope:</strong> Applies to all contractors working at Angstrom facilities.</p>
-                <p className="mt-2"><strong>PPE:</strong> Contractors must provide their own PPE. Safety glasses are mandatory at all times.</p>
-                <p className="mt-2"><strong>Liability:</strong> Contractors assume full liability for any accidents, injuries, or property damage resulting from their actions.</p>
-                <p className="mt-2"><strong>Safety Compliance:</strong> Contractors must follow Angstrom's Lockout/Tagout (LOTO) and Hot Work Permit processes at all times. Fall protection is mandatory at elevations of 4 feet or higher.</p>
-                <p className="mt-2"><strong>Photography and Recording:</strong> Strictly prohibited unless supervised by Angstrom personnel and within scope of duties. Unauthorized devices may be confiscated.</p>
-                <p className="mt-2"><strong>Emergency Protocol:</strong> Contractors must follow Angstrom’s Fire, Weather, and Spill protocols. Maps are available upon request.</p>
-                <p className="mt-2"><strong>Facility Escort:</strong> Contractors must be escorted unless management permits unescorted access.</p>
-                <p className="mt-2"><strong>Compliance:</strong> Violations may result in removal and termination of contract.</p>
-              </div>
-              <div className="p-4 border-t text-right">
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700"
-                >
-                  I Agree
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <motion.button
+          type="submit"
+          onClick={handleSubmit}
+          disabled={!agreed || loading}
+          whileTap={{ scale: 0.96 }}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl text-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Submitting...' : 'Agree and Continue'}
+        </motion.button>
+      </motion.div>
     </div>
   )
 }

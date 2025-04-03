@@ -1,17 +1,31 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 
 export default function Orientation() {
   const router = useRouter()
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      router.push('/policy')
-    }, 15000) // Adjust time if needed
-    return () => clearTimeout(timeout)
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from YouTube
+      if (
+        event.origin !== 'https://www.youtube.com' ||
+        typeof event.data !== 'object' ||
+        event.data === null
+      )
+        return
+
+      // Check if video ended
+      if (event.data.event === 'onStateChange' && event.data.info === 0) {
+        router.push('/policy')
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
   }, [router])
 
   return (
@@ -23,7 +37,7 @@ export default function Orientation() {
         transition={{ duration: 0.6 }}
       >
         <h1 className="text-3xl font-extrabold text-blue-700 mb-2">Contractor Orientation</h1>
-        <p className="text-sm text-gray-600">Please watch the video to continue</p>
+        <p className="text-sm text-gray-600">Please watch the entire video to continue</p>
       </motion.div>
 
       <motion.div
@@ -33,9 +47,11 @@ export default function Orientation() {
         transition={{ delay: 0.2, duration: 0.5 }}
       >
         <iframe
+          ref={iframeRef}
           className="w-full h-full"
-          src="https://www.youtube.com/embed/bIKHudof6pc?autoplay=1&modestbranding=1&rel=0&playsinline=1"
-          title="Contractor Orientation"
+          src="https://www.youtube.com/embed/bIKHudof6pc?enablejsapi=1&rel=0&modestbranding=1&autoplay=1"
+          title="Welcome IQ Orientation"
+          frameBorder="0"
           allow="autoplay; encrypted-media"
           allowFullScreen
         />

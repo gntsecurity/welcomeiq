@@ -3,14 +3,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import supabase from '../../utils/supabaseClient'
 
 export default function SignIn() {
   const router = useRouter()
+  const [hosts, setHosts] = useState<{ id: string; name: string }[]>([])
+  const [orgId, setOrgId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: '',
     company: '',
-    contact: '',
+    email: '',
     host: ''
   })
 
@@ -21,6 +24,7 @@ export default function SignIn() {
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   )
 
+  // Set time every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
@@ -28,6 +32,7 @@ export default function SignIn() {
     return () => clearInterval(interval)
   }, [])
 
+  // Detect inactivity
   const resetInactivityTimer = () => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
     if (localStorage.getItem('welcomeiq:idle2min') !== 'true') return
@@ -60,14 +65,51 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.company || !form.contact || !form.host) return
+    if (!form.name || !form.company || !form.email || !form.host || !orgId) return
 
     setLoading(true)
+    const { error } = await supabase.from('visitors').insert({
+      name: form.name,
+      company: form.company,
+      email: form.email,
+      host_id: form.host,
+      organization_id: orgId
+    })
 
-    setTimeout(() => {
+    if (!error) {
       router.push('/orientation')
-    }, 1500)
+    } else {
+      console.error('Submission failed:', error)
+      setLoading(false)
+    }
   }
+
+  // Fetch organization + staff
+  useEffect(() => {
+    const init = async () => {
+      // You can change this slug method if you later want to use subdomain routing
+      const orgName = 'welcomeiq' // hardcoded for now — replace dynamically later
+
+      const { data: org, error } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('slug', orgName)
+        .single()
+
+      if (!org || error) return console.error('Missing org', error)
+      setOrgId(org.id)
+
+      const { data: staff } = await supabase
+        .from('staff')
+        .select('id, name')
+        .eq('organization_id', org.id)
+        .order('name')
+
+      if (staff) setHosts(staff)
+    }
+
+    init()
+  }, [])
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4 overflow-hidden">
@@ -82,20 +124,8 @@ export default function SignIn() {
             onTouchStart={dismissOverlay}
           >
             <div className="absolute top-6 right-6 text-sm text-gray-500">{time}</div>
-            <motion.img
-              src="/logo.png"
-              alt="Welcome IQ Logo"
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="w-28 h-28 mb-4"
-            />
-            <motion.p
-              className="text-xl font-semibold text-blue-700 mb-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
+            <motion.img src="/logo.png" alt="Welcome IQ Logo" className="w-28 h-28 mb-4" />
+            <motion.p className="text-xl font-semibold text-blue-700 mb-2">
               Tap to check in
             </motion.p>
             <motion.div
@@ -109,7 +139,7 @@ export default function SignIn() {
         )}
       </AnimatePresence>
 
-      {/* Transition Loader */}
+      {/* Loading animation */}
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -118,27 +148,14 @@ export default function SignIn() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <motion.img
-              src="/logo.png"
-              alt="Welcome IQ"
-              className="w-24 h-24 mb-4"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            />
-            <motion.p
-              className="text-lg font-medium text-blue-700"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
+            <motion.img src="/logo.png" alt="Welcome IQ" className="w-24 h-24 mb-4" />
+            <motion.p className="text-lg font-medium text-blue-700">
               Welcome, {form.name.split(' ')[0]}...
             </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Form Content */}
       {!loading && (
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -147,69 +164,22 @@ export default function SignIn() {
           className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 space-y-6 border border-gray-200 z-10"
         >
           <div className="text-center">
-            <motion.img
-              src="/logo.png"
-              alt="Welcome IQ Logo"
-              className="w-14 h-14 mx-auto mb-2"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-            />
+            <motion.img src="/logo.png" alt="Welcome IQ Logo" className="w-14 h-14 mx-auto mb-2" />
             <h1 className="text-3xl font-extrabold text-blue-700">Welcome IQ</h1>
             <p className="text-sm text-gray-500 mt-1">Touch to begin your visit</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              name="name"
-              placeholder="Your Full Name"
-              value={form.name}
-              onChange={handleChange}
-              onFocus={resetInactivityTimer}
-              className="w-full p-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              required
-            />
-            <input
-              type="text"
-              name="company"
-              placeholder="Company Name"
-              value={form.company}
-              onChange={handleChange}
-              onFocus={resetInactivityTimer}
-              className="w-full p-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              required
-            />
-            <input
-              type="text"
-              name="contact"
-              placeholder="Phone or Email"
-              value={form.contact}
-              onChange={handleChange}
-              onFocus={resetInactivityTimer}
-              className="w-full p-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              required
-            />
-            <select
-              name="host"
-              value={form.host}
-              onChange={handleChange}
-              onFocus={resetInactivityTimer}
-              className="w-full p-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              required
-            >
-              <option value="" disabled>
-                Who Are You Here to See?
-              </option>
-              <option value="Mike Doyle">Mike Doyle</option>
-              <option value="Denise Cobey">Denise Cobey</option>
+            <input type="text" name="name" placeholder="Your Full Name" value={form.name} onChange={handleChange} onFocus={resetInactivityTimer} className="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-lg" required />
+            <input type="text" name="company" placeholder="Company Name" value={form.company} onChange={handleChange} onFocus={resetInactivityTimer} className="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-lg" required />
+            <input type="email" name="email" placeholder="Your Email Address" value={form.email} onChange={handleChange} onFocus={resetInactivityTimer} className="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-lg" required />
+            <select name="host" value={form.host} onChange={handleChange} onFocus={resetInactivityTimer} className="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-lg" required>
+              <option value="" disabled>Who Are You Here to See?</option>
+              {hosts.map(h => (
+                <option key={h.id} value={h.id}>{h.name}</option>
+              ))}
             </select>
-
-            <motion.button
-              type="submit"
-              whileTap={{ scale: 0.95 }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl text-lg font-semibold transition"
-            >
+            <motion.button type="submit" whileTap={{ scale: 0.95 }} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl text-lg font-semibold transition">
               Submit and Continue
             </motion.button>
           </form>
