@@ -84,12 +84,12 @@ export default function SignIn() {
 
   useEffect(() => {
     const init = async () => {
-      const slug = window.location.hostname.split('.')[0].toLowerCase()
+      const slug = 'AFE'
 
       const { data: org, error: orgErr } = await supabase
         .from('organizations')
         .select('id')
-        .eq('slug', slug)
+        .ilike('slug', slug)
         .maybeSingle()
 
       if (!org || orgErr) {
