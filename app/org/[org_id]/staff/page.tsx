@@ -1,99 +1,81 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import supabase from '../../../../../utils/supabaseClient'
+import supabase from '../../../../utils/supabaseClient'
 import { motion } from 'framer-motion'
+
+type StaffMember = {
+  id: string
+  name: string
+  email: string
+  created_at: string
+}
 
 export default function StaffInvitePage() {
   const { org_id } = useParams()
   const router = useRouter()
-  const supabase = supabase
 
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [staff, setStaff] = useState<StaffMember[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setSuccess(false)
-    setSubmitting(true)
+  useEffect(() => {
+    const fetchStaff = async () => {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('id, name, email, created_at')
+        .eq('org_id', org_id)
+        .order('created_at', { ascending: false })
 
-    const { data, error: signUpError } = await supabase.auth.admin.createUser({
-      email,
-      email_confirm: true
-    })
+      if (!error && data) {
+        const parsed = data.map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          email: v.email,
+          created_at: new Date(v.created_at).toLocaleString()
+        }))
+        setStaff(parsed)
+      }
 
-    if (signUpError || !data?.user?.id) {
-      setError('Failed to invite user. Email may already exist.')
-      setSubmitting(false)
-      return
+      setLoading(false)
     }
 
-    const { error: insertError } = await supabase.from('staff').insert({
-      organization_id: org_id,
-      user_id: data.user.id,
-      name,
-      email,
-      role: 'user'
-    })
-
-    if (insertError) {
-      setError('Failed to add staff to organization.')
-    } else {
-      setSuccess(true)
-      setName('')
-      setEmail('')
-    }
-
-    setSubmitting(false)
-  }
+    fetchStaff()
+  }, [org_id])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6">
-      <motion.div
-        className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow border space-y-6"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-2xl font-bold text-blue-700">Invite Staff</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full p-4 rounded-xl border border-gray-300 text-base"
-          />
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full p-4 rounded-xl border border-gray-300 text-base"
-          />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold"
-          >
-            {submitting ? 'Inviting...' : 'Send Invite'}
-          </button>
-        </form>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {success && (
-          <p className="text-sm text-green-600">
-            Invite sent successfully!
-          </p>
-        )}
-      </motion.div>
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Staff Members</h1>
+        <button
+          onClick={() => router.push(`/org/${org_id}/staff/invite`)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Invite
+        </button>
+      </div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : staff.length === 0 ? (
+        <p>No staff members found.</p>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-2"
+        >
+          {staff.map(member => (
+            <div
+              key={member.id}
+              className="border p-4 rounded bg-white shadow-sm"
+            >
+              <div className="font-semibold">{member.name}</div>
+              <div className="text-sm text-gray-600">{member.email}</div>
+              <div className="text-xs text-gray-400">{member.created_at}</div>
+            </div>
+          ))}
+        </motion.div>
+      )}
     </div>
   )
 }
