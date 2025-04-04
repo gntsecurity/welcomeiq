@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import createClient from '../../../../../utils/supabaseClient'
+import supabase from '../../../../../utils/supabaseClient' from '../../../../../utils/supabaseClient'
 import { motion } from 'framer-motion'
 
 export default function StaffInvitePage() {
   const { org_id } = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = supabase
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')

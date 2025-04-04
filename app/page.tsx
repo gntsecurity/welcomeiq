@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import createClient from '../utils/supabaseClient'
+import supabase from '../utils/supabaseClient' from '../utils/supabaseClient'
 import { motion } from 'framer-motion'
 
 export default function SignInPage() {
@@ -10,7 +10,7 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = supabase
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

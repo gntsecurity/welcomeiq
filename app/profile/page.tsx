@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import createClient from '../../utils/supabaseClient'
+import supabase from '../../utils/supabaseClient' from '../../utils/supabaseClient'
 import { motion } from 'framer-motion'
 
 export default function ProfilePage() {
-  const supabase = createClient()
+  const supabase = supabase
   const router = useRouter()
 
   const [name, setName] = useState('')

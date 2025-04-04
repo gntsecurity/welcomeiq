@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import createClient from '../../../../utils/supabaseClient'
+import supabase from '../../../../utils/supabaseClient' from '../../../../utils/supabaseClient'
 import { motion } from 'framer-motion'
 
 type OrgInfo = {
@@ -16,7 +16,7 @@ type OrgInfo = {
 export default function OrgInfoPage() {
   const { org_id } = useParams()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = supabase
   const [info, setInfo] = useState<OrgInfo | null>(null)
 
   useEffect(() => {
