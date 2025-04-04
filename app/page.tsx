@@ -1,57 +1,65 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import supabase from '../utils/supabaseClient'
-import { motion } from 'framer-motion'
 
 export default function HomePage() {
   const [email, setEmail] = useState('')
-  const [error, setError] = useState('')
-  const router = useRouter()
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError(null)
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true }
+      options: {
+        emailRedirectTo: `${window.location.origin}/signin`,
+      },
     })
 
     if (error) {
       setError(error.message)
     } else {
-      setError('')
-      router.push('/auth/check-email')
+      setSent(true)
     }
+
+    setLoading(false)
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white text-black">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-white rounded-2xl shadow p-6"
-      >
-        <h1 className="text-xl font-bold mb-4 text-center">Welcome IQ</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full border border-gray-300 px-4 py-2 rounded"
-          />
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-          >
-            Send Sign-In Link
-          </button>
-        </form>
-      </motion.div>
-    </div>
+    <main className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {sent ? (
+          <div className="text-center text-lg font-medium">
+            A magic link has been sent to <span className="font-semibold">{email}</span>.
+            <br />
+            Please check your inbox.
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 border rounded-md"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-black text-white py-2 rounded-md"
+            >
+              {loading ? 'Sending...' : 'Send Magic Link'}
+            </button>
+            {error && <div className="text-red-500 text-sm">{error}</div>}
+          </form>
+        )}
+      </div>
+    </main>
   )
 }
