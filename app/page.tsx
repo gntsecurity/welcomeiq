@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import supabase from '../utils/supabaseClient' from '../utils/supabaseClient'
+import supabase from '../utils/supabaseClient'
 import { motion } from 'framer-motion'
 
 export default function SignInPage() {
