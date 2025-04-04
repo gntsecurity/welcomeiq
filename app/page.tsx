@@ -1,69 +1,57 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import supabase from '../utils/supabaseClient'
 import { motion } from 'framer-motion'
 
-export default function SignInPage() {
+export default function HomePage() {
   const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = supabase
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        shouldCreateUser: true
-      }
+      options: { shouldCreateUser: true }
     })
 
-    setLoading(false)
-
     if (error) {
-      setError('Login failed. Check the email and try again.')
+      setError(error.message)
     } else {
-      router.push('/signin')
+      setError('')
+      router.push('/auth/check-email')
     }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen flex flex-col items-center justify-center px-4"
-    >
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center">
-          <img src="/logo.png" alt="Welcome IQ" className="w-24 h-24 mb-4" />
-          <h1 className="text-2xl font-semibold text-center">Welcome IQ</h1>
-          <p className="text-sm text-gray-500 text-center mt-1">Sign in to your organization</p>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white text-black">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md bg-white rounded-2xl shadow p-6"
+      >
+        <h1 className="text-xl font-bold mb-4 text-center">Welcome IQ</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-xl text-base"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="w-full border border-gray-300 px-4 py-2 rounded"
           />
+          {error && <p className="text-red-600 text-sm">{error}</p>}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-black text-white rounded-xl py-2 text-base font-medium"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
           >
-            {loading ? 'Sending magic link...' : 'Sign In'}
+            Send Sign-In Link
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   )
 }
