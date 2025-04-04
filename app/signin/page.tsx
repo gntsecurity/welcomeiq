@@ -84,38 +84,33 @@ export default function SignIn() {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
+      const slug = window.location.hostname.split('.')[0].toLowerCase()
 
-      const email = session?.user?.email
-      if (!email) return
-
-      const { data: staffRecord, error: staffErr } = await supabase
-        .from('staff')
-        .select('organization_id')
-        .eq('email', email)
+      const { data: org, error: orgErr } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('slug', slug)
         .maybeSingle()
 
-      if (!staffRecord || staffErr) {
-        console.error('Unable to resolve org from email:', email, staffErr)
+      if (!org || orgErr) {
+        console.error('Org not found for slug:', slug, orgErr)
         return
       }
 
-      setOrgId(staffRecord.organization_id)
+      setOrgId(org.id)
 
-      const { data: staffList, error: hostErr } = await supabase
+      const { data: staff, error: staffErr } = await supabase
         .from('staff')
         .select('id, name')
-        .eq('organization_id', staffRecord.organization_id)
+        .eq('organization_id', org.id)
         .order('name')
 
-      if (hostErr) {
-        console.error('Error loading staff:', hostErr)
+      if (!staff || staffErr) {
+        console.error('Staff not loaded:', staffErr)
         return
       }
 
-      setHosts(staffList || [])
+      setHosts(staff)
     }
 
     init()
