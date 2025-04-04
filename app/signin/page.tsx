@@ -24,7 +24,6 @@ export default function SignIn() {
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   )
 
-  // Set time every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
@@ -32,7 +31,6 @@ export default function SignIn() {
     return () => clearInterval(interval)
   }, [])
 
-  // Detect inactivity
   const resetInactivityTimer = () => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
     if (localStorage.getItem('welcomeiq:idle2min') !== 'true') return
@@ -68,7 +66,7 @@ export default function SignIn() {
     if (!form.name || !form.company || !form.email || !form.host || !orgId) return
 
     setLoading(true)
-    const { error } = await supabase.from('visitors').insert({
+    const { error } = await supabase.from('sign_ins').insert({
       name: form.name,
       company: form.company,
       email: form.email,
@@ -84,25 +82,29 @@ export default function SignIn() {
     }
   }
 
-  // Fetch organization + staff
   useEffect(() => {
     const init = async () => {
-      // You can change this slug method if you later want to use subdomain routing
-      const orgName = 'welcomeiq' // hardcoded for now — replace dynamically later
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
 
-      const { data: org, error } = await supabase
-        .from('organizations')
-        .select('id')
-        .eq('slug', orgName)
+      const email = session?.user?.email
+      if (!email) return
+
+      const { data: userStaff } = await supabase
+        .from('staff')
+        .select('organization_id')
+        .eq('email', email)
         .single()
 
-      if (!org || error) return console.error('Missing org', error)
-      setOrgId(org.id)
+      if (!userStaff) return
+
+      setOrgId(userStaff.organization_id)
 
       const { data: staff } = await supabase
         .from('staff')
         .select('id, name')
-        .eq('organization_id', org.id)
+        .eq('organization_id', userStaff.organization_id)
         .order('name')
 
       if (staff) setHosts(staff)
@@ -113,7 +115,6 @@ export default function SignIn() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4 overflow-hidden">
-      {/* Inactivity Overlay */}
       <AnimatePresence>
         {inactive && (
           <motion.div
@@ -139,7 +140,6 @@ export default function SignIn() {
         )}
       </AnimatePresence>
 
-      {/* Loading animation */}
       <AnimatePresence>
         {loading && (
           <motion.div
