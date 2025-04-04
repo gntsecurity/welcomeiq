@@ -91,23 +91,31 @@ export default function SignIn() {
       const email = session?.user?.email
       if (!email) return
 
-      const { data: userStaff } = await supabase
+      const { data: staffRecord, error: staffErr } = await supabase
         .from('staff')
         .select('organization_id')
         .eq('email', email)
-        .single()
+        .maybeSingle()
 
-      if (!userStaff) return
+      if (!staffRecord || staffErr) {
+        console.error('Unable to resolve org from email:', email, staffErr)
+        return
+      }
 
-      setOrgId(userStaff.organization_id)
+      setOrgId(staffRecord.organization_id)
 
-      const { data: staff } = await supabase
+      const { data: staffList, error: hostErr } = await supabase
         .from('staff')
         .select('id, name')
-        .eq('organization_id', userStaff.organization_id)
+        .eq('organization_id', staffRecord.organization_id)
         .order('name')
 
-      if (staff) setHosts(staff)
+      if (hostErr) {
+        console.error('Error loading staff:', hostErr)
+        return
+      }
+
+      setHosts(staffList || [])
     }
 
     init()
