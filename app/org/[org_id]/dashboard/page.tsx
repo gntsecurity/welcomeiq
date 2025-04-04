@@ -17,7 +17,6 @@ type Visitor = {
 export default function VisitorsPage() {
   const router = useRouter()
   const { org_id } = useParams()
-  const supabase = supabase
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [loading, setLoading] = useState(true)
 
