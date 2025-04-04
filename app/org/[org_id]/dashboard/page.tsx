@@ -27,13 +27,14 @@ export default function DashboardPage() {
         .eq('org_id', org_id)
 
       if (!error && data) {
-        const parsed = data.map((v) => ({
+        const parsed: Visitor[] = data.map((v: any) => ({
           id: v.id,
           name: v.name,
           email: v.email,
           created_at: new Date(v.created_at).toLocaleString(),
           host: v.host ?? null
         }))
+
         setVisitors(parsed)
       }
 
