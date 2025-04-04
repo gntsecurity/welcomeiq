@@ -8,8 +8,6 @@ import supabase from '../../utils/supabaseClient'
 export default function SignIn() {
   const router = useRouter()
   const [hosts, setHosts] = useState<{ id: string; name: string }[]>([])
-  const [orgId, setOrgId] = useState<string | null>(null)
-
   const [form, setForm] = useState({
     name: '',
     company: '',
@@ -63,15 +61,14 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.company || !form.email || !form.host || !orgId) return
+    if (!form.name || !form.company || !form.email || !form.host) return
 
     setLoading(true)
     const { error } = await supabase.from('sign_ins').insert({
       name: form.name,
       company: form.company,
       email: form.email,
-      host_id: form.host,
-      organization_id: orgId
+      host_id: form.host
     })
 
     if (!error) {
@@ -83,37 +80,11 @@ export default function SignIn() {
   }
 
   useEffect(() => {
-    const init = async () => {
-      const slug = 'AFE'
-
-      const { data: org, error: orgErr } = await supabase
-        .from('organizations')
-        .select('id')
-        .ilike('slug', slug)
-        .maybeSingle()
-
-      if (!org || orgErr) {
-        console.error('Org not found for slug:', slug, orgErr)
-        return
-      }
-
-      setOrgId(org.id)
-
-      const { data: staff, error: staffErr } = await supabase
-        .from('staff')
-        .select('id, name')
-        .eq('organization_id', org.id)
-        .order('name')
-
-      if (!staff || staffErr) {
-        console.error('Staff not loaded:', staffErr)
-        return
-      }
-
-      setHosts(staff)
+    const loadHosts = async () => {
+      const { data, error } = await supabase.from('staff').select('id, name').order('name')
+      if (!error && data) setHosts(data)
     }
-
-    init()
+    loadHosts()
   }, [])
 
   return (
